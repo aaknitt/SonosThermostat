@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+.title {
+	font-size: 20px;
+	font-weight: bold; 
+	text-align: center;
+	font-family: Arial;
+}
+button{
+  background-color: Blue;
+  border: none;
+  color: white;
+  width: 60px;
+  height: 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+}
+.PrevButton{
+	float: left;
+
+}
+.NextButton{
+	float: right;
+
+}
+.TempInput{
+	width: 50px;
+	background-color: SkyBlue;
+}
+input[type='time']{
+	width: 100px;
+	background-color: SkyBlue;
+}
+.Schedule{
+	margin: auto;
+	width:275px;
+	font-family:Sans-Serif;
+	font-size: .8em;
+	margin-bottom: 7px;
+}
+.ScheduleHeader{
+	text-align: center;
+	font-family: Arial;
+	font-size: medium;
+	font-weight: bold;
+}
+body {
+	background-color: DeepSkyBlue;
+}
+.Label1{
+	width: 20px;
+	display: inline-block;
+	text-align: right;
+	margin-right: 2px;
+}
+.Label2{
+	width: 90px;
+	display: inline-block;
+	//margin-left: 5px;
+	margin-right: 2px;
+	text-align: right;
+}
+	
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+function loadData(url, callback){
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function(){
+	 if(this.readyState == 4 && this.status == 200){
+	 callback.apply(xhttp);
+	 }
+	};
+	xhttp.open("GET", url, true);
+	xhttp.send();
+}
+function dayOfWeekAsString(dayIndex) {
+  return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dayIndex];
+}
+
+var initialization_complete = 0;
+function updateData(){
+ var current_temp = this.responseText.split(',')[0];
+ var set_temp = this.responseText.split(',')[1];
+ var heating_status = this.responseText.split(',')[2];
+ console.log(this.responseText);
+ current_day = this.responseText.split(',')[3];
+ document.getElementById("temperature").innerHTML = Math.round(current_temp);
+ document.getElementById("set_temperature").innerHTML = Math.round(set_temp);
+ document.getElementById("current_day").innerHTML = dayOfWeekAsString(current_day);
+ if (heating_status=='1'){
+	document.getElementById("heating_status").innerHTML = "On";
+ }
+ else{
+	document.getElementById("heating_status").innerHTML = "Off";
+ }
+ /*
+ if (document.readyState == "complete" && initialization_complete == 0){
+	if (current_day ==0){
+		document.getElementById("Sun").style.display = "block";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Week").style.display = "none";
+	}
+	else if (current_day == 6){
+		document.getElementById("Sun").style.display = "none";
+		document.getElementById("Sat").style.display = "block";
+		document.getElementById("Week").style.display = "none";
+	}
+	else{
+		document.getElementById("Sun").style.display = "none";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Week").style.display = "block";
+	}
+	initialization_complete = 1;
+  }
+  */
+}
+
+function plotHistory(){
+	var tempHistory = this.responseText.split(',');
+	var data = new google.visualization.DataTable();
+	data.addColumn('datetime', 'Time');
+	data.addColumn('number', 'Temperature');
+	var date = new Date();
+	var timestamp = date.getTime();
+	for (var i=1439; i>=0; i--){
+		data.addRow([new Date(timestamp - i*60000),parseFloat(tempHistory[i])]);
+	}
+	var options = {
+	  title: 'Temperature History',
+	  width: 400,
+      height: 250,
+      legend: 'none',
+	  backgroundColor: 'SkyBlue',
+	  vAxis: {
+		viewWindow: {
+			min: 60,
+			max: 90
+		},
+		ticks: [60, 65, 70, 75, 80, 85, 90] // display labels every 25
+	  }
+	};
+	var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+	chart.draw(data, options);
+}
+function loadSchedule(){
+	var lines = this.responseText.split('\n');
+	//console.log(lines);
+	var WeekTimes = lines[0].split(',');
+	var WeekTemps = lines[1].split(',');
+	var SatTimes = lines[2].split(',');
+	var SatTemps = lines[3].split(',');
+	var SunTimes = lines[4].split(',');
+	var SunTemps = lines[5].split(',');
+	//convert integer timestamps from schedule file to human readable form
+	WeekTimeStrings = [];
+	SatTimeStrings = [];
+	SunTimeStrings = [];
+	for (i=0;i<WeekTimes.length;i++){
+		var date = new Date(null);
+		date.setSeconds(WeekTimes[i]);
+		WeekTimeStrings[i] = date.toISOString().substr(11, 8);
+		date = new Date(null);
+		date.setSeconds(SatTimes[i]);
+		SatTimeStrings[i] = date.toISOString().substr(11, 8);
+		date = new Date(null);
+		date.setSeconds(SunTimes[i]);
+		SunTimeStrings[i] = date.toISOString().substr(11, 8);
+	}	
+	document.getElementById("WeekTime1").value = WeekTimeStrings[0];
+	document.getElementById("WeekTime2").value = WeekTimeStrings[1];
+	document.getElementById("WeekTime3").value = WeekTimeStrings[2];
+	document.getElementById("WeekTime4").value = WeekTimeStrings[3];
+	document.getElementById("WeekTemp1").value = WeekTemps[0];
+	document.getElementById("WeekTemp2").value = WeekTemps[1];
+	document.getElementById("WeekTemp3").value = WeekTemps[2];
+	document.getElementById("WeekTemp4").value = WeekTemps[3];
+	document.getElementById("SatTime1").value = SatTimeStrings[0];
+	document.getElementById("SatTime2").value = SatTimeStrings[1];
+	document.getElementById("SatTime3").value = SatTimeStrings[2];
+	document.getElementById("SatTime4").value = SatTimeStrings[3];
+	document.getElementById("SatTemp1").value = SatTemps[0];
+	document.getElementById("SatTemp2").value = SatTemps[1];
+	document.getElementById("SatTemp3").value = SatTemps[2];
+	document.getElementById("SatTemp4").value = SatTemps[3];
+	document.getElementById("SunTime1").value = SunTimeStrings[0];
+	document.getElementById("SunTime2").value = SunTimeStrings[1];
+	document.getElementById("SunTime3").value = SunTimeStrings[2];
+	document.getElementById("SunTime4").value = SunTimeStrings[3];
+	document.getElementById("SunTemp1").value = SunTemps[0];
+	document.getElementById("SunTemp2").value = SunTemps[1];
+	document.getElementById("SunTemp3").value = SunTemps[2];
+	document.getElementById("SunTemp4").value = SunTemps[3];
+	if (current_day ==0){
+		document.getElementById("Sun").style.display = "block";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Week").style.display = "none";
+	}
+	else if (current_day == 6){
+		document.getElementById("Sun").style.display = "none";
+		document.getElementById("Sat").style.display = "block";
+		document.getElementById("Week").style.display = "none";
+	}
+	else{
+		document.getElementById("Sun").style.display = "none";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Week").style.display = "block";
+	}
+	set_labels();
+}
+function time_to_seconds(HHMMSS){
+	var a = HHMMSS.split(':');
+	var seconds = (+a[0]) * 60 * 60 + (+a[1]) * 60; 
+	console.log(seconds);
+	return seconds
+}
+function ModifySchedule(){
+	//retrieve data from input fields and convert timestamps to seconds
+	//format into six comma separated lines to send via POST
+	var line1 = 
+	time_to_seconds(document.getElementById("WeekTime1").value) + "," +
+	time_to_seconds(document.getElementById("WeekTime2").value) + "," +
+	time_to_seconds(document.getElementById("WeekTime3").value) + "," +
+	time_to_seconds(document.getElementById("WeekTime4").value);
+	var line2 = 
+	document.getElementById("WeekTemp1").value + "," + 
+	document.getElementById("WeekTemp2").value + "," +
+	document.getElementById("WeekTemp3").value + "," +
+	document.getElementById("WeekTemp4").value;
+	var line3 = 
+	time_to_seconds(document.getElementById("SatTime1").value) + "," +
+	time_to_seconds(document.getElementById("SatTime2").value) + "," +
+	time_to_seconds(document.getElementById("SatTime3").value) + "," +
+	time_to_seconds(document.getElementById("SatTime4").value);
+	var line4 = 
+	document.getElementById("SatTemp1").value + "," + 
+	document.getElementById("SatTemp2").value + "," +
+	document.getElementById("SatTemp3").value + "," +
+	document.getElementById("SatTemp4").value;
+	var line5 = 
+	time_to_seconds(document.getElementById("SunTime1").value) + "," +
+	time_to_seconds(document.getElementById("SunTime2").value) + "," +
+	time_to_seconds(document.getElementById("SunTime3").value) + "," +
+	time_to_seconds(document.getElementById("SunTime4").value);
+	var line6 = 
+	document.getElementById("SunTemp1").value + "," + 
+	document.getElementById("SunTemp2").value + "," +
+	document.getElementById("SunTemp3").value + "," +
+	document.getElementById("SunTemp4").value;
+	//form and send POST request with our data
+	var xhr = new XMLHttpRequest();
+	xhr.open("POST", '/updateschedule.php', true);
+	xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	xhr.send('line1='+line1 + '&line2=' + line2 + '&line3=' + line3 + '&line4=' + line4 + '&line5=' + line5 + '&line6=' + line6);
+	set_labels();
+}
+function set_labels(){
+	//WEEKDAY LABELS
+	if (parseFloat(document.getElementById('WeekTemp1').value) > parseFloat(document.getElementById('SunTemp4').value)){
+		document.getElementById('Week1LabelA').innerHTML = 'By ';
+		document.getElementById('Week1LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Week1LabelA').innerHTML = 'At ';
+		document.getElementById('Week1LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('WeekTemp2').value) > parseFloat(document.getElementById('WeekTemp1').value)){
+		document.getElementById('Week2LabelA').innerHTML = 'By ';
+		document.getElementById('Week2LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Week2LabelA').innerHTML = 'At ';
+		document.getElementById('Week2LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('WeekTemp3').value) > parseFloat(document.getElementById('WeekTemp2').value)){
+		document.getElementById('Week3LabelA').innerHTML = 'By ';
+		document.getElementById('Week3LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Week3LabelA').innerHTML = 'At ';
+		document.getElementById('Week3LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('WeekTemp4').value) > parseFloat(document.getElementById('WeekTemp3').value)){
+		document.getElementById('Week4LabelA').innerHTML = 'By ';
+		document.getElementById('Week4LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Week4LabelA').innerHTML = 'At ';
+		document.getElementById('Week4LabelB').innerHTML = ' Set Temp To ';
+	}
+	//SATURDAY LABELS
+	if (parseFloat(document.getElementById('SatTemp1').value) > parseFloat(document.getElementById('WeekTemp4').value)){
+		document.getElementById('Sat1LabelA').innerHTML = 'By ';
+		document.getElementById('Sat1LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sat1LabelA').innerHTML = 'At ';
+		document.getElementById('Sat1LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('SatTemp2').value) > parseFloat(document.getElementById('SatTemp1').value)){
+		document.getElementById('Sat2LabelA').innerHTML = 'By ';
+		document.getElementById('Sat2LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sat2LabelA').innerHTML = 'At ';
+		document.getElementById('Sat2LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('SatTemp3').value) > parseFloat(document.getElementById('SatTemp2').value)){
+		document.getElementById('Sat3LabelA').innerHTML = 'By ';
+		document.getElementById('Sat3LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sat3LabelA').innerHTML = 'At ';
+		document.getElementById('Sat3LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('SatTemp4').value) > parseFloat(document.getElementById('SatTemp3').value)){
+		document.getElementById('Sat4LabelA').innerHTML = 'By ';
+		document.getElementById('Sat4LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sat4LabelA').innerHTML = 'At ';
+		document.getElementById('Sat4LabelB').innerHTML = ' Set Temp To ';
+	}
+	//SUNDAY LABELS
+	if (parseFloat(document.getElementById('SunTemp1').value) > parseFloat(document.getElementById('SatTemp4').value)){
+		document.getElementById('Sun1LabelA').innerHTML = 'By ';
+		document.getElementById('Sun1LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sun1LabelA').innerHTML = 'At ';
+		document.getElementById('Sun1LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('SunTemp2').value) > parseFloat(document.getElementById('SunTemp1').value)){
+		document.getElementById('Sun2LabelA').innerHTML = 'By ';
+		document.getElementById('Sun2LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sun2LabelA').innerHTML = 'At ';
+		document.getElementById('Sun2LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('SunTemp3').value) > parseFloat(document.getElementById('SunTemp2').value)){
+		document.getElementById('Sun3LabelA').innerHTML = 'By ';
+		document.getElementById('Sun3LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sun3LabelA').innerHTML = 'At ';
+		document.getElementById('Sun3LabelB').innerHTML = ' Set Temp To ';
+	}
+	if (parseFloat(document.getElementById('SunTemp4').value) > parseFloat(document.getElementById('SunTemp3').value)){
+		document.getElementById('Sun4LabelA').innerHTML = 'By ';
+		document.getElementById('Sun4LabelB').innerHTML = ' Have Temp At ';
+	}
+	else{
+		document.getElementById('Sun4LabelA').innerHTML = 'At ';
+		document.getElementById('Sun4LabelB').innerHTML = ' Set Temp To ';
+	}
+}
+function show_previous(){
+	if (document.getElementById("Week").style.display == "block"){
+		document.getElementById("Week").style.display = "none";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Sun").style.display = "block";
+	}
+	else if (document.getElementById("Sat").style.display == "block"){
+		document.getElementById("Week").style.display = "block";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Sun").style.display = "none";
+	}
+	else if (document.getElementById("Sun").style.display == "block"){
+		document.getElementById("Week").style.display = "none";
+		document.getElementById("Sat").style.display = "block";
+		document.getElementById("Sun").style.display = "none";
+	}
+}
+function show_next(){
+	if (document.getElementById("Week").style.display == "block"){
+		document.getElementById("Week").style.display = "none";
+		document.getElementById("Sat").style.display = "block";
+		document.getElementById("Sun").style.display = "none";
+	}
+	else if (document.getElementById("Sat").style.display == "block"){
+		document.getElementById("Week").style.display = "none";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Sun").style.display = "block";
+	}
+	else if (document.getElementById("Sun").style.display == "block"){
+		document.getElementById("Week").style.display = "block";
+		document.getElementById("Sat").style.display = "none";
+		document.getElementById("Sun").style.display = "none";
+	}
+}
+
+google.charts.load('current', {'packages':['corechart']});
+
+loadData('/data.txt',updateData);
+loadData('/schedule.txt',loadSchedule);
+loadData('/temphistory.txt',plotHistory);
+setInterval(function() {loadData('/data.txt',updateData)}, 10000);
+</script>
+</head>
+<body>
+<div class="title">
+Current Temperature: <span id='temperature'></span>
+</div>
+<div class="title">
+Set Temperature: <span id='set_temperature'></span>
+</div>
+<div class="title">
+Heating Status: <span id='heating_status'></span>
+</div>
+<div class="title">
+Today is <span id='current_day'></span>
+</div>
+<br>
+
+<div class='Schedule' id='Week' style="display:block">
+<div align='center' class='ScheduleHeader'><button class="PrevButton" type="button" onclick="show_previous()">Previous</button>Weekday Schedule<button class="NextButton" type="button" onclick="show_next()">Next</button></div>
+<br>
+<div><div class='Label1' id='Week1LabelA'>At </div><input id='WeekTime1' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Week1LabelB'> Set Temp To </div><input class='TempInput' id='WeekTemp1' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Week2LabelA'>At </div><input id='WeekTime2' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Week2LabelB'> Set Temp To </div><input class='TempInput' id='WeekTemp2' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Week3LabelA'>At </div><input id='WeekTime3' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Week3LabelB'> Set Temp To </div><input class='TempInput' id='WeekTemp3' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Week4LabelA'>At </div><input id='WeekTime4' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Week4LabelB'> Set Temp To </div><input class='TempInput' id='WeekTemp4' onchange="ModifySchedule()"></></input></div>
+</div>
+<div class='Schedule' id='Sat' style="display:none">
+<div align='center' class='ScheduleHeader'><button class="PrevButton" type="button" onclick="show_previous()">Previous</button>  Saturday Schedule  <button class="NextButton" type="button" onclick="show_next()">Next</button></div>
+<br>
+<div><div class='Label1' id='Sat1LabelA'>At </div><input id='SatTime1' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sat1LabelB'> Set Temp To </div><input class='TempInput' id='SatTemp1' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Sat2LabelA'>At </div><input id='SatTime2' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sat2LabelB'> Set Temp To </div><input class='TempInput' id='SatTemp2' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Sat3LabelA'>At </div><input id='SatTime3' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sat3LabelB'> Set Temp To </div><input class='TempInput' id='SatTemp3' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Sat4LabelA'>At </div><input id='SatTime4' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sat4LabelB'> Set Temp To </div><input class='TempInput' id='SatTemp4' onchange="ModifySchedule()"></></input></div>
+</div>
+<div class='Schedule' id='Sun' style="display:none">
+<div align='center' class='ScheduleHeader'><button class="PrevButton" type="button" onclick="show_previous()">Previous</button>  Sunday Schedule  <button class="NextButton" type="button" onclick="show_next()">Next</button></div>
+<br>
+<div><div class='Label1' id='Sun1LabelA'>At </div><input id='SunTime1' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sun1LabelB'> Set Temp To </div><input class='TempInput' id='SunTemp1' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Sun2LabelA'>At </div><input id='SunTime2' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sun2LabelB'> Set Temp To </div><input class='TempInput' id='SunTemp2' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Sun3LabelA'>At </div><input id='SunTime3' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sun3LabelB'> Set Temp To </div><input class='TempInput' id='SunTemp3' onchange="ModifySchedule()"></></input></div>
+<div><div class='Label1' id='Sun4LabelA'>At </div><input id='SunTime4' type='time' required onchange="ModifySchedule()"></input><div class='Label2' id='Sun4LabelB'> Set Temp To </div><input class='TempInput' id='SunTemp4' onchange="ModifySchedule()"></></input></div>
+</div>
+<div align='center' id="curve_chart" style="width: 100%; height: 400px"></div>
