@@ -542,7 +542,7 @@ void loop() {
         }
         //If it's Friday, use Saturday for the next set point
         else if (SatSetTemps[0] > set_temp_f && timeClient.getDay() == 5){  
-          if (((SatSetTemps[0]-set_temp_f)/(SatTimes[0]/60.0+24*60 - (timeClient.getHours()*60+timeClient.getMinutes()))) < temp_ramp_rate_deg_per_min){
+          if (((SatSetTemps[0]-set_temp_f)/(SatTimes[0]/60.0+24*60 - (timeClient.getHours()*60+timeClient.getMinutes()))) > temp_ramp_rate_deg_per_min){
             set_temp_f = SatSetTemps[0];  //preheating to next set point
           }
         }
